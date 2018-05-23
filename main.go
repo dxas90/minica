@@ -33,15 +33,15 @@ type issuer struct {
 	cert *x509.Certificate
 }
 
-func getIssuer(keyFile, certFile string, autoCreate bool) (*issuer, error) {
+func getIssuer(keyFile, certFile, caCN string, autoCreate bool) (*issuer, error) {
 	keyContents, keyErr := ioutil.ReadFile(keyFile)
 	certContents, certErr := ioutil.ReadFile(certFile)
 	if os.IsNotExist(keyErr) && os.IsNotExist(certErr) {
-		err := makeIssuer(keyFile, certFile)
+		err := makeIssuer(keyFile, certFile, caCN)
 		if err != nil {
 			return nil, err
 		}
-		return getIssuer(keyFile, certFile, false)
+		return getIssuer(keyFile, certFile, caCN, false)
 	} else if keyErr != nil {
 		return nil, fmt.Errorf("%s (but %s exists)", keyErr, certFile)
 	} else if certErr != nil {
@@ -87,12 +87,12 @@ func readCert(certContents []byte) (*x509.Certificate, error) {
 	return x509.ParseCertificate(block.Bytes)
 }
 
-func makeIssuer(keyFile, certFile string) error {
+func makeIssuer(keyFile, certFile, caCN string) error {
 	key, err := makeKey(keyFile)
 	if err != nil {
 		return err
 	}
-	_, err = makeRootCert(key, certFile)
+	_, err = makeRootCert(key, certFile, caCN)
 	if err != nil {
 		return err
 	}
@@ -123,10 +123,13 @@ func makeKey(filename string) (*rsa.PrivateKey, error) {
 	return key, nil
 }
 
-func makeRootCert(key crypto.Signer, filename string) (*x509.Certificate, error) {
+func makeRootCert(key crypto.Signer, filename, caCN string) (*x509.Certificate, error) {
 	serial, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
 		return nil, err
+	}
+	if caCN == "" {
+		caCN = "Daniel Ramirez CA (" + hex.EncodeToString(serial.Bytes()[:3]) + ")"
 	}
 	template := &x509.Certificate{
 		Subject: pkix.Name{
@@ -135,7 +138,7 @@ func makeRootCert(key crypto.Signer, filename string) (*x509.Certificate, error)
 			Locality: []string{"Miami"},
 			Organization: []string{"ΣmpireDev LLC"},
 			OrganizationalUnit: []string{"Infrastructure"},
-			CommonName: "Daniel Ramirez CA (" + hex.EncodeToString(serial.Bytes()[:3]) + ")",
+			CommonName: caCN,
 		},
 		SerialNumber: serial,
 		NotBefore:    time.Now(),
@@ -262,6 +265,7 @@ func main2() error {
 	var caCert = flag.String("ca-cert", "minica.pem", "Root certificate filename, PEM encoded.")
 	var domains = flag.String("domains", "", "Domain names to include as Server Alternative Names.")
 	var ipAddresses = flag.String("ip-addresses", "", "IP Addresses to include as Server Alternative Names.")
+	var caCN = flag.String("ca-name", "", "Common name for root CA.")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, `
@@ -290,7 +294,7 @@ will not overwrite existing keys or certificates.
 		flag.Usage()
 		os.Exit(1)
 	}
-	issuer, err := getIssuer(*caKey, *caCert, true)
+	issuer, err := getIssuer(*caKey, *caCert, *caCN, true)
 	if err != nil {
 		return err
 	}
