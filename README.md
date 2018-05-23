@@ -20,12 +20,12 @@ will not overwrite existing keys or certificates.
 First, install the [Go tools](https://golang.org/dl/) and set up your `$GOPATH`.
 Then, run:
 
-`go get github.com/jsha/minica`
+`go get github.com/dxas90/minica`
 
 # Example usage
 
 ```
 # Generate a root key and cert in minica-key.pem, and minica.pem, then
 # generate and sign an end-entity key and cert, storing them in ./foo.com/
-$ minica --domains foo.com
+$ minica --domains example.com -ip-addresses 127.0.0.1
 ```
