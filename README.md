@@ -15,12 +15,25 @@ placed in a new directory whose name is chosen as the first domain name from
 the certificate, or the first IP address if no domain names are present. It
 will not overwrite existing keys or certificates.
 
+The certificate will have a validity of 2 years and 30 days.
+
 # Installation
 
 First, install the [Go tools](https://golang.org/dl/) and set up your `$GOPATH`.
 Then, run:
 
 `go get github.com/dxas90/minica`
+
+When using Go 1.11 or newer you don't need a $GOPATH and can instead do the
+following:
+
+```
+cd /ANY/PATH
+git clone https://github.com/jsha/minica.git
+go build
+## or
+# go install
+```
 
 # Example usage
 
